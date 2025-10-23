@@ -4,14 +4,6 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Try to enable 1s auto-refresh for the live countdown (optional)
-HAVE_AUTOREFRESH = False
-try:
-    from streamlit_extras.st_autorefresh import st_autorefresh  # pip install streamlit-extras
-    HAVE_AUTOREFRESH = True
-except Exception:
-    HAVE_AUTOREFRESH = False
-
 # ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="Multiplication Trainer", page_icon="🧮", layout="centered")
 
@@ -64,13 +56,11 @@ STR = {
         "kids_zone": "Espace Enfant", "parents_zone": "Espace Parent",
         "tables_label": "Tables de multiplication (0 à 12)",
         "keyboard_mode": "✏️ Entrer la réponse au clavier",
-        "timer_enable": "⏳ Activer le chrono par question",
-        "duration_seconds": "Durée (secondes)",
         "start_quiz": "▶ Démarrer le quiz",
         "retry_mistakes": "🔁 Rejouer mes erreurs",
         "question": "Question", "correct": "Correct",
         "enter_answer": "Tape ta réponse au clavier :", "submit": "Valider",
-        "too_slow": "⏳ Trop lent !", "oops": "❌ Oups", "bravo": "✅ Bravo !",
+        "oops": "❌ Oups", "bravo": "✅ Bravo !",
         "finished": "Terminé !",
         "badge_mastered": "🏅 Maîtrisé !",
         "badge_almost": "⭐ Presque parfait !",
@@ -83,8 +73,7 @@ STR = {
         "footer": "© 2025 Multiplication Trainer – Développé par Illan Delouya",
         "fun_title": "🎯 Multiplions en s'amusant !",
         "toggle_kids": "🧒 Enfant", "toggle_parent": "👨‍👩‍👧 Parent",
-        "progress": "Progrès",
-        "timer_note": "Astuce : si le décompte ne bouge pas, l'auto-rafraîchissement n'est pas actif (ajoute 'streamlit-extras' dans requirements)."
+        "progress": "Progrès"
     },
     "en": {
         "title": "Multiplication Trainer",
@@ -92,13 +81,11 @@ STR = {
         "kids_zone": "Kids Zone", "parents_zone": "Parents’ Zone",
         "tables_label": "Times tables (0 to 12)",
         "keyboard_mode": "✏️ Type answer with keyboard",
-        "timer_enable": "⏳ Enable per-question timer",
-        "duration_seconds": "Duration (seconds)",
         "start_quiz": "▶ Start quiz",
         "retry_mistakes": "🔁 Retry mistakes",
         "question": "Question", "correct": "Correct",
         "enter_answer": "Type your answer:", "submit": "Submit",
-        "too_slow": "⏳ Too slow!", "oops": "❌ Oops!", "bravo": "✅ Great job!",
+        "oops": "❌ Oops!", "bravo": "✅ Great job!",
         "finished": "Finished!",
         "badge_mastered": "🏅 Mastered!", "badge_almost": "⭐ Almost perfect!",
         "badge_keep": "💪 Keep practicing!",
@@ -110,8 +97,7 @@ STR = {
         "footer": "© 2025 Multiplication Trainer – Developed by Illan Delouya",
         "fun_title": "🎯 Fun Multiplications!",
         "toggle_kids": "🧒 Kids", "toggle_parent": "👨‍👩‍👧 Parent",
-        "progress": "Progress",
-        "timer_note": "Tip: if seconds aren’t moving, enable auto-refresh by adding 'streamlit-extras' to requirements."
+        "progress": "Progress"
     },
 }
 
@@ -122,14 +108,11 @@ def init_state():
     ss.setdefault("view", "kids")  # "kids" or "parent"
     ss.setdefault("selected_tables", [0,1,2,3])
     ss.setdefault("keyboard_mode", True)
-    ss.setdefault("timer_on", True)
-    ss.setdefault("perq_seconds", 8)
     # quiz state
     ss.setdefault("in_quiz", False)
     ss.setdefault("questions", [])
     ss.setdefault("q_idx", 0)
     ss.setdefault("correct", 0)
-    ss.setdefault("deadline", None)
     ss.setdefault("pending_next", False)
     ss.setdefault("next_time", 0.0)
     ss.setdefault("feedback", "")
@@ -188,7 +171,6 @@ def start_quiz():
     st.session_state.q_idx = 0; st.session_state.correct = 0
     st.session_state.feedback = ""; st.session_state.pending_next = False
     st.session_state.in_quiz = True
-    st.session_state.deadline = (time.time() + st.session_state.perq_seconds) if st.session_state.timer_on else None
     st.rerun()
 
 def end_quiz():
@@ -200,7 +182,7 @@ def end_quiz():
     else: badge = t("badge_keep")
     st.success(f"**{t('finished')}** 🎉\n\n{badge}\n\n" + t("results_fmt").format(correct=correct,total=total,percent=pct))
     ss.in_quiz=False; ss.questions=[]; ss.q_idx=0; ss.correct=0
-    ss.deadline=None; ss.feedback=""; ss.pending_next=False
+    ss.feedback=""; ss.pending_next=False
 
 # ---------------------- KIDS VIEW ----------------------
 if st.session_state.view == "kids":
@@ -218,11 +200,16 @@ if st.session_state.view == "kids":
                 selected.append(i)
     st.session_state.selected_tables = selected
 
+    # Options row (keyboard mode only, timer removed)
     oc1, oc2, oc3 = st.columns(3)
-    with oc1: st.session_state.keyboard_mode = st.checkbox(t("keyboard_mode"), value=st.session_state.keyboard_mode)
-    with oc2: st.session_state.timer_on = st.checkbox(t("timer_enable"), value=st.session_state.timer_on)
-    with oc3: st.session_state.perq_seconds = st.number_input(t("duration_seconds"), min_value=2, max_value=60, value=st.session_state.perq_seconds, step=1)
+    with oc1:
+        st.session_state.keyboard_mode = st.checkbox(t("keyboard_mode"), value=st.session_state.keyboard_mode)
+    with oc2:
+        st.empty()
+    with oc3:
+        st.empty()
 
+    # Actions
     bc1, bc2 = st.columns(2)
     with bc1:
         if st.button(t("start_quiz"), use_container_width=True): start_quiz()
@@ -239,7 +226,6 @@ if st.session_state.view == "kids":
                 st.session_state.q_idx = 0; st.session_state.correct = 0
                 st.session_state.feedback = ""; st.session_state.pending_next=False
                 st.session_state.in_quiz = True
-                st.session_state.deadline = (time.time() + st.session_state.perq_seconds) if st.session_state.timer_on else None
                 st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
@@ -249,17 +235,11 @@ if st.session_state.view == "kids":
         q = st.session_state.questions[st.session_state.q_idx]
         total = len(st.session_state.questions)
 
-        # Live auto-refresh (1s) while counting down
-        if HAVE_AUTOREFRESH and st.session_state.timer_on and not st.session_state.pending_next:
-            st_autorefresh(interval=1000, key="auto_timer")
-
-        # Show feedback pause before next
+        # If we're holding feedback before next question
         if st.session_state.pending_next:
             st.markdown(f"### {st.session_state.feedback}")
             if time.time() >= st.session_state.next_time:
                 st.session_state.pending_next = False
-                if st.session_state.timer_on:
-                    st.session_state.deadline = time.time() + st.session_state.perq_seconds
                 st.rerun()
 
         # Progress header + bar
@@ -271,23 +251,6 @@ if st.session_state.view == "kids":
 
         # Big centered question
         st.markdown(f"<h2 style='text-align:center'>{q['a']} × {q['b']} = ?</h2>", unsafe_allow_html=True)
-
-        # Timer
-        if st.session_state.timer_on and not st.session_state.pending_next:
-            remaining = int(st.session_state.deadline - time.time())
-            if remaining <= 0:
-                add_error(q["a"], q["b"], q["answer"], None, "timeout")
-                update_table_stats(q["a"], ok=False)
-                st.session_state.feedback = f"{t('too_slow')}  \n**{q['a']} × {q['b']} = {q['answer']}**"
-                st.session_state.q_idx += 1
-                if st.session_state.q_idx >= total:
-                    end_quiz()
-                else:
-                    st.session_state.pending_next=True
-                    st.session_state.next_time=time.time()+1.0
-                st.rerun()
-            st.info(f"⏳ {remaining}s")
-            st.progress(max(0, min(1, remaining / max(1, st.session_state.perq_seconds))))
 
         # Keyboard mode (quiz-style with Enter)
         if st.session_state.keyboard_mode and not st.session_state.pending_next:
@@ -314,6 +277,8 @@ if st.session_state.view == "kids":
                     else:
                         st.session_state.feedback = f"{t('oops')}  \n**{q['a']} × {q['b']} = {q['answer']}**"
                         add_error(q["a"], q["b"], q["answer"], val, "wrong")
+
+                    # advance after short hold
                     st.session_state.q_idx += 1
                     if st.session_state.q_idx >= total:
                         end_quiz()
@@ -351,6 +316,7 @@ if st.session_state.view == "kids":
                 else:
                     st.session_state.feedback = f"{t('oops')}  \n**{q['a']} × {q['b']} = {q['answer']}**"
                     add_error(q["a"], q["b"], q["answer"], clicked, "wrong")
+                # advance after short hold
                 st.session_state.q_idx += 1
                 if st.session_state.q_idx >= total:
                     end_quiz()
@@ -358,9 +324,6 @@ if st.session_state.view == "kids":
                     st.session_state.pending_next=True
                     st.session_state.next_time=time.time()+1.0
                 st.rerun()
-
-    if st.session_state.timer_on and not HAVE_AUTOREFRESH:
-        st.caption("ℹ️ " + t("timer_note"))
 
 # ---------------------- PARENT VIEW ----------------------
 if st.session_state.view == "parent":
